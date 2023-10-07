@@ -9,17 +9,23 @@ from sklearn.dummy import DummyClassifier
 import lightgbm as lgb
 from lightgbm import LGBMClassifier
 
+import pickle
+
 
 # %%
 # LOAD DATA
-df = pd.read_csv('gs://cloud-samples-data/ai-platform-unified/datasets/tabular/petfinder-tabular-classification.csv')
+# df = pd.read_csv('gs://cloud-samples-data/ai-platform-unified/datasets/tabular/petfinder-tabular-classification.csv')
+# df.to_csv(r'input/task_1.csv', index=False)
+df = pd.read_csv(r'input/task_1.csv')
 df
 # ----------------------------------------------------------------------------------------------------------------------
 # %%
 # EDA
 df.info()
+
 # %%
-df.isnull().sum()
+df.isnull().sum().sum()  # no NaN values
+
 # %%
 # decode all object columns to category
 for col in df.select_dtypes(include='object').columns:
@@ -33,8 +39,11 @@ for col in df.select_dtypes(include='category').columns:
 # %%
 df.describe()
 
-# plot all int features using seaborn
-sns.pairplot(df)
+# %%
+# plot all int features using seaborn displot, decode category columns to int for plotting
+df_tmp = df.copy()
+for col in df_tmp.columns:
+    sns.displot(df_tmp[col])
 
 # age is unusal - probably in months
 
@@ -43,7 +52,7 @@ target = 'Adopted'
 # change tartget to 0/1
 df[target] = df[target].map({'Yes': 1, 'No': 0})
 df[target].value_counts()
-# a bit unbalanced, but ok
+# a bit unbalanced - use sample weight
 # ----------------------------------------------------------------------------------------------------------------------
 # %%
 # TRAIN/VAL/TEST SPLIT
@@ -65,6 +74,13 @@ y_test = test[target]
 print(f'X_train shape: {X_train.shape}')
 print(f'X_val shape: {X_val.shape}')
 print(f'X_test shape: {X_test.shape}')
+
+# map sample weight from 0 and 1 values
+samples_ratio = y_train.value_counts()[0] / y_train.value_counts()[1]
+print(f'samples_ratio: {samples_ratio}')
+sw_train = y_train.map({0: 1, 1: samples_ratio})
+sw_val = y_val.map({0: 1, 1: samples_ratio})
+sw_test = y_test.map({0: 1, 1: samples_ratio})
 # ----------------------------------------------------------------------------------------------------------------------
 # %%
 # TRAIN BASELINE MODEL
@@ -77,8 +93,11 @@ print(f'Dummy accuracy: {model.score(X_train, y_train)}')
 early_stopping_callback = lgb.early_stopping(5)
 
 model = LGBMClassifier(random_state=random_state, objective='binary', metric='binary_logloss')
+
 model.fit(X_train, y_train,
+          sample_weight=(),
           eval_set=[(X_val, y_val)],
+          eval_sample_weight=[sw_val],
           eval_names=['val'],
           eval_metric=['binary_logloss'],
           callbacks=[early_stopping_callback],
@@ -111,8 +130,12 @@ print(f'Val recall: {recall_score(y_val, y_pred_val)}')
 print(f'Test recall: {recall_score(y_test, y_pred_test)}')
 
 # %%
+# plot feature importance
+lgb.plot_importance(model, figsize=(15, 5))
+# ----------------------------------------------------------------------------------------------------------------------
+
+# %%
 # Pickle model to artifacts folder
-import pickle
 with open('artifacts/model.pkl', 'wb') as f:
     pickle.dump(model, f)
 
@@ -126,3 +149,5 @@ y_pred_test = model.predict(X_test)
 print(f'Train accuracy: {accuracy_score(y_train, y_pred_train)}')
 print(f'Val accuracy: {accuracy_score(y_val, y_pred_val)}')
 print(f'Test accuracy: {accuracy_score(y_test, y_pred_test)}')
+
+# %%

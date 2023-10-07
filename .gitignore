@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 tasks_descr.md
+input/
+output/*
