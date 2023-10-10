@@ -11,4 +11,5 @@ dependencies:
   - fsspec
   - gcsfs
   - pytest
+  - seaborn
 prefix: C:\Users\evgen\miniconda3\envs\soil
