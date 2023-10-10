@@ -8,8 +8,6 @@ from sklearn.metrics import f1_score, accuracy_score, recall_score
 
 import pickle
 
-from IPython.display import display
-
 
 def predict(input_file_path: Union[str, Path],
             target: str,
@@ -24,6 +22,8 @@ def predict(input_file_path: Union[str, Path],
         model_path (Union[str, Path]): Path to the saved model.
         output_results_path (Union[str, Path]): Path to the output file.
     """
+
+    print('Running predict()...')
 
     df = pd.read_csv(input_file_path)
 
@@ -48,16 +48,16 @@ def predict(input_file_path: Union[str, Path],
     df = pd.concat([X, y, y_pred], axis=1)
     df.columns = list(X.columns) + [target, target + '_prediction']
 
+    # change dtype of categorical columns back to object
     for col in df.select_dtypes(include='category').columns:
         df[col] = df[col].astype('object')
 
+    # save results to output file
     df.to_csv(output_results_path, index=False, header=True)
     print('Results saved to: ', output_results_path)
 
     # print dtype of each column
-    print('Data types:')
-    display(df.dtypes)
-    display(df.head(2), df.tail(2))
+    # display(df.head(2), df.tail(2))
 
 
 if __name__ == '__main__':

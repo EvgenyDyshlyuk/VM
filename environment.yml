@@ -1,0 +1,14 @@
+name: soil
+channels:
+  - defaults
+dependencies:
+  - python==3.8.13
+  - numpy=1.23
+  - lightgbm==3.3.3
+  - jupyter
+  - pandas
+  - matplotlib
+  - fsspec
+  - gcsfs
+  - pytest
+prefix: C:\Users\evgen\miniconda3\envs\soil
